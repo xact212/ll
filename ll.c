@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 #include "ll.h"
 
-
-node* buildNode(int val, node* next) {
+node* buildNode(void* data, node* next) {
     struct node* newNode = malloc(sizeof(node));
-    newNode->val = val;
+    newNode->data = data;
     newNode->next = next;
     return newNode;
 }
@@ -17,9 +18,9 @@ ll* buildll() {
     return newll;
 }
 
-void appendNode(ll* ll, int val) {
+void appendNode(ll* ll, void* data) {
     if (ll->head == NULL) {
-        ll->head = buildNode(val, NULL);
+        ll->head = buildNode(data, NULL);
         ll->len++;
         return;
     }
@@ -27,17 +28,25 @@ void appendNode(ll* ll, int val) {
         node* curr = ll->head;
         while(curr->next != NULL) //get to end of ll 
             curr = curr->next;
-        curr->next = buildNode(val, NULL);
+        curr->next = buildNode(data, NULL);
         ll->len++;
     }
     
 }
 
-void printll(ll* ll) {
-    printf("ll is %i long\n", ll->len);
-    node* curr = ll->head;
+void printll(ll* linkl, char* dataType) {
+    bool isString = !strcmp(dataType, "string"); //precompute comparisons, invert because returns zero if equal
+    bool isll = !strcmp(dataType, "ll");
+
+    printf("ll is %i long\n", linkl->len);
+    node* curr = linkl->head;
     while (curr != NULL) {
-        printf("%i->", curr->val);
+        if (isString) //default assume int, have to specify for string or other type
+            printf("%s->", (*(char***)curr->data));
+        else if (isll)
+            printf("%i->", (*(ll**)curr->data)->len);
+        else
+            printf("%i->",  *(int*)curr->data);
         curr = curr->next;
     }
     puts("NULL\n");
@@ -64,7 +73,8 @@ void removeNode(ll* ll, int index) {
     }
 }
 
-void deletell(ll* ll) {
+void deletell(ll* ll, void (*custFreeFunc)(void *data)) {
+    bool freeFuncDefined = custFreeFunc != NULL;
     node* curr = ll->head;
     node* prev = NULL;
     while (curr != NULL) {
@@ -72,13 +82,19 @@ void deletell(ll* ll) {
         curr = curr->next;
         ll->len--;
         node* temp = prev;
-        free(temp);
+        if (freeFuncDefined) {
+            custFreeFunc(temp->data); //callee not expected to free current node, just the data
+            free(temp);
+        }
+        else {
+            free(temp);
+        }
     }
     free(curr);
-    ll->head = NULL;
+    free(ll);
 }
 
-void insertNode(ll* ll, int val, int index) {
+void insertNode(ll* ll, void* data, int index) {
     if (index >= ll->len || index < 0) {
         puts("trying to insert node out of range of index, aborting node insertion");
         return;
@@ -89,7 +105,7 @@ void insertNode(ll* ll, int val, int index) {
     while (curr != NULL) {
         if (count == index) {
             ll->len++;
-            prev->next = buildNode(val, curr);
+            prev->next = buildNode(data, curr);
             return;
         }
         prev = curr;
@@ -97,4 +113,3 @@ void insertNode(ll* ll, int val, int index) {
         count++;
     }
 }
-
